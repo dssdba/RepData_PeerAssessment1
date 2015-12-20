@@ -1,25 +1,129 @@
 ---
-title: "Reproducible Research: Peer Assessment 1"
+title: "PeerAssessment1"
+author: "Rick Hutchison"
+date: "December 18, 2015"
 output: 
-  html_document:
-    keep_md: true
+  html_document: 
+    keep_md: yes
+    self_contained: no
 ---
 
+This is an R Markdown document for the completion of the Peer Assessment 1 assignment for Reproducable Research class in December 2015.
 
-## Loading and preprocessing the data
+From the assignment:
+
+"This assignment makes use of data from a personal activity monitoring device. This device collects data at 5 minute intervals through out the day. The data consists of two months of data from an anonymous individual collected during the months of October and November, 2012 and include the number of steps taken in 5 minute intervals each day."
+
+Load the activity data:
+
+```{r}
+act <- read.csv("./activity.csv")
+summary(act)
+```
+
+Histogram of the total number of steps taken each day:
+
+```{r}
+stepsum <- aggregate(steps~date, data=act, FUN=sum, na.rm=TRUE)
+hist(stepsum$steps,
+     breaks=100,
+     col='orange',
+     main="Histogram - Total Number of Steps Taken per Day",
+     xlab="Total number of steps taken each day")
+```
+
+The mean total number of steps taken per day:
+
+```{r}
+mean(stepsum$steps, na.rm = TRUE)
+```
+
+The median total number of steps taken per day:
+
+```{r}
+median(stepsum$steps, na.rm = TRUE)
+```
+
+Average daily activity pattern:
+
+```{r}
+stepmean <- aggregate(steps~interval, data=act, FUN=mean, na.rm=TRUE)
+plot(stepmean,
+     type="l",
+     main="Time Series - Average Number of Steps Taken",
+     xlab="5 minute interval",
+     ylab="Average number of steps taken")
+```
+
+The interval with the maximum number of steps is:
+
+```{r}
+library(data.table)
+sm <- as.data.table(stepmean)
+sm[which.max(sm$steps)]
+```
+
+Total number of missing values:
+
+```{r}
+sum(is.na(act))
+```
+
+Create a dataset with the NA values replaced with the mean for that 5 minute interval
+
+```{r}
+act2 <- as.data.table(act)
+act2[,steps := as.double(steps)]
+act2[is.na(steps), steps := stepmean[stepmean$interval == interval, "steps"]]
+```
+
+Histogram of the total number of steps taken each day with missing data filled in:
+
+```{r}
+stepsum2 <- aggregate(steps~date, data=act2, FUN=sum, na.rm=TRUE)
+hist(stepsum2$steps,
+     breaks=100,
+     col='orange',
+     main="Histogram - Total Number of Steps Taken per Day",
+     xlab="Total number of steps taken each day")
+```
+
+The mean total number of steps taken per day:
+
+```{r}
+mean(stepsum2$steps, na.rm = TRUE)
+```
+
+The median total number of steps taken per day:
+
+```{r}
+median(stepsum2$steps, na.rm = TRUE)
+```
+
+Add a day type column to the data set with the missing values filled in.  Replace the day of the week value returned by weekday to "weekend" if Saturday or Sunday, otherwise "weekday"
+
+```{r}
+act2$daytype <- weekdays(as.Date(act2$date))
+act2[daytype == "Saturday", daytype := "weekend"]
+act2[daytype == "Sunday", daytype := "weekend"]
+act2[daytype != "weekend", daytype := "weekday"]
+
+```
+
+Time series panel plot of after number of steps taken, averaged across all weekday days or weekend days by interval.
+
+```{r}
+act3 <- aggregate(steps~interval+daytype, data=act2, FUN=mean, na.rm=TRUE)
+
+library(lattice)
+
+xyplot(steps~interval|daytype,
+       data=act3,
+       type="l",
+       xlab="Interval",
+       ylab="Number of steps",
+       layout=c(1,2))
+
+```
 
 
-
-## What is mean total number of steps taken per day?
-
-
-
-## What is the average daily activity pattern?
-
-
-
-## Imputing missing values
-
-
-
-## Are there differences in activity patterns between weekdays and weekends?
